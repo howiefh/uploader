@@ -1,0 +1,37 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <!-- Bootstrap 核心 CSS 文件 -->
+    <link rel="stylesheet" href="//cdn.bootcss.com/bootstrap/3.3.0/css/bootstrap.min.css">
+
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="//cdn.bootcss.com/jquery/1.11.1/jquery.min.js"></script>
+
+    <!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
+    <script src="//cdn.bootcss.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+
+    <script src="//cdn.bootcss.com/plupload/3.1.0/plupload.min.js"></script>
+    <script src="../fileUploader.js"></script>
+</head>
+
+<body>
+    <button type="button" id="uploadFile" class="btn btn-primary btn-process">上传</button>
+    <script type="text/javascript">
+        $('#uploadFile').fileUploader({
+            url: '',
+            successFn: function(data) {
+                alert('success');
+            },
+            errorFn: function(data) {
+                alert('error');
+            },
+            init: {
+                UploadComplete: function (up, files) {
+                    alert('complete');
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
