@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="utf-8">
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>mobile uploader</title>
+    <link rel="stylesheet" type="text/css" href="mobileUploader.css">
+    <script src='flexible.min.js'></script>
+</head>
+
+<body>
+    <div class="main-wrap" >
+        <div class="survey-content">
+            <textarea id="surveyContent" placeholder="请详细描述您的问题或建议，我们将及时跟进解决。（建议添加相关问题截图）" maxlength="150" class="survey-text" /></textarea>
+            <div class="upload-area">
+                <ol class="file-list" id="thumbs">
+                    <li class="file-item" id="browse-item">
+                        <img class="img" src="icon_plus.png">
+                        <input id="browse" class="file-input" accept="image/png,image/jpeg,image/jpg" multiple="multiple" type="file" />
+                    </li>
+                </ol>
+            </div>
+        </div>
+        <div class="survey-contacts sec-module">
+            <input type="text" id="mobileNo" placeholder="联系电话（方便我们联系您）">
+        </div>
+        <div class="padded">
+            <button class="btn btn-large btn-blue" id="submit" type="button">提交</button>
+        </div>
+    </div>
+    <div class="fix-msg" style="display:none;">
+        <div class="msg">
+            <p id="msgTxt_1" class="msg-txt">谢谢您的反馈</p>
+        </div>
+    </div>
+    <script src="https://cdn.bootcss.com/jquery/2.0.0/jquery.min.js"></script>
+    <script src="https://cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js"></script>
+    <script src='../compressImage.js'></script>
+    <script src='../uploader.js'></script>
+    <script src='mobileUploader.js'></script>
+</body>
+
+</html>

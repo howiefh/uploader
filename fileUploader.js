@@ -1,5 +1,5 @@
 /**
- * @author: Feng Hao  
+ * @author Feng Hao  
  */
 
 (function($){
