@@ -23,6 +23,11 @@
             this.files = { length: 0 };
             this.uploading = false;
             this.preview = 0;
+            this.msgTpl = '<div class="fix-msg" style="display:none;">' 
+                        + '  <div class="msg">'
+                        + '    <p id="msgTxt_1" class="msg-txt"></p>'
+                        + '  </div>'
+                        + '</div>';
 
             this.init();
         }
@@ -175,8 +180,12 @@
             },
 
             showMsg: function (txt1) {
-                $('#msgTxt_1').html(txt1);
                 var msg = $('.fix-msg');
+                if(!msg.length) {
+                    msg = $(this.msgTpl);
+                    $('body').append(msg);
+                }
+                $('#msgTxt_1').html(txt1);
                 if(msg.css("display") == "none"){
                     msg.fadeIn();
                 }
