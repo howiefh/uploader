@@ -1,0 +1,111 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Excel</title>
+</head>
+<body>
+  <a href="./demo.xlsx">Excel demo</a>
+  <h4>Single sheet</h4>
+  <input id="headerRow" placeholder="Header row number" title="Header row number"/>
+  <button id="import">Import</button>
+  <h4>Merge sheets</h4>
+  <input id="multiHeaderRow" placeholder="Header row number" title="Header row number"/>
+  <input id="dateCol" placeholder="Date column header" title="Date column header" value="Date"/>
+  <input id="year" placeholder="Supply year" title="Supply year" value="2018."/>
+  <button id="multiImport">Import</button>
+  <button id="export">Export</button>
+  <button id="exportTable">Export Table</button>
+  <button id="exportRemote">Export Remote</button>
+  <div id="container"></div>
+
+  <script type="text/javascript" src="//unpkg.com/xlsx/dist/shim.min.js"></script>
+  <script type="text/javascript" src="//unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+
+  <script type="text/javascript" src="//unpkg.com/blob.js@1.0.1/Blob.js"></script>
+  <script type="text/javascript" src="//unpkg.com/file-saver@1.3.3/FileSaver.js"></script>
+  <script src="//unpkg.com/axios/dist/axios.min.js"></script>
+
+  <script src="../excelImporter.js"></script>
+  <script src="../excelExporter.js"></script>
+  <script>
+    function table(headers, results) {
+      var l = [], i, j;
+      l.push('<table id="table">');
+      l.push('<tr>')
+      for (i = 0; i < headers.length; i++) {
+        l.push('<th>' + headers[i] + '</th>');
+      }
+      l.push('</tr>')
+      for (i = 0; i < results.length; i++) {
+        l.push('<tr>')
+        var item = results[i];
+        for (j = 0; j < headers.length; j++) {
+          l.push('<td contenteditable="true">' + (item[headers[j]] || '')+ '</td>');
+        }
+        l.push('</tr>')
+      }
+      l.push('</table>');
+      return l.join('')
+    }
+    var headerRow = document.getElementById('headerRow');
+    var header, rows;
+    var excelImporter = new ExcelImporter('import', {
+      onLoaded: function(res) {
+        header = res[0].header;
+        rows = res[0].results;
+        document.getElementById('container').innerHTML = table(header, rows);
+      }
+    });
+    var excelExporter = new ExcelExporter('export', {
+      data: function() {
+        return rows;
+      }
+    });
+
+    headerRow.addEventListener('change', function() {
+      excelImporter.setHeaderRow(+headerRow.value);
+    })
+
+    var multiHeaderRow = document.getElementById('multiHeaderRow');
+    var multiExcelImporter = new ExcelImporter('multiImport', {
+      onlyFirstSheet: false,
+      onLoaded: function(res) {
+        var dateCol = document.getElementById('dateCol').value;
+        var year = document.getElementById('year').value;
+        header = null;
+        rows = [];
+        for (var i = 0; i < res.length; i++) {
+          if (!header) {
+            header = res[i].header;
+          }
+
+          if (dateCol && year) {
+            for (var j = 0; j < res[i].results.length; j++) {
+              var item = res[i].results[j];
+              if (item[dateCol]) {
+                item[dateCol] = year + item[dateCol];
+              }
+            }
+          }
+          rows = rows.concat(res[i].results);
+        }
+        document.getElementById('container').innerHTML = table(header, rows);
+      }
+    });
+
+    multiHeaderRow.addEventListener('change', function() {
+      multiExcelImporter.setHeaderRow(+multiHeaderRow.value);
+    })
+
+    var excelTableDownloader = new ExcelExporter('exportTable', {
+      tableId: 'table'
+    });
+
+    var excelRemoteDownloader = new ExcelExporter('exportRemote', {
+      url: './data.json'
+    });
+  </script>
+</body>
+</html>
