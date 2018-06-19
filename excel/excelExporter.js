@@ -139,12 +139,15 @@
   };
 
   ExcelExporter.prototype.exportJsonToExcel = function (data, header, filename, autoWidth) {
-    /* original data */
+    if (!data) {
+      alert('Data empty');
+      return false;
+    }
     header = header || this.opts.header;
     if (!header && data.length > 0) {
       header = Object.keys(data[0]);
     }
-    fields = this.opts.fields || header || []
+    var fields = this.opts.fields || header || []
     filename = filename || this.opts.filename || Date.now();
     if (typeof autoWidth !== 'boolean') {
       autoWidth = this.opts.autoWidth;
