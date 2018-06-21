@@ -54,9 +54,6 @@
     }
 
     self.el = getByID(element);
-    if (self.opts.tableId) {
-      self.table = getByID(self.opts.tableId);
-    }
     self.downloadStatus = false;
     self.opts.bindClick && bind(self.el, 'click', function () {
       if (self.opts.url) {
@@ -108,12 +105,8 @@
   };
 
   ExcelExporter.prototype.exportTableToExcel = function (id) {
-    var theTable;
-    if (!this.table && id) {
-      this.table = getByID(id);
-    }
+    var theTable = getByID(id);
 
-    theTable = this.table;
     var filename = this.opts.filename || Date.now();
 
     var oo = generateArray(theTable);

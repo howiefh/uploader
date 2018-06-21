@@ -20,8 +20,10 @@
     headerMap: null,
     headerRow: null,
     headerIndex: null,
+    bindClick: true,
     onlyFirstSheet: true,
     includeUnknowHeader: false,
+    includeEmptyHeader: false,
     dateNF: 'yyyy-MM-dd'
   };
 
@@ -32,22 +34,24 @@
     self.setHeaderRow(self.opts.headerRow);
 
     self.el = getByID(element);
-    self.input = create('input', {
-      type: 'file',
-      accept: '.xlsx, .xls',
-      style: 'display: none; z-index: -9999;'
-    });
-    self.el.parentElement.appendChild(self.input);
-    bind(self.input, 'change', function(e) {
-      var files = e.target.files;
-      var itemFile = files[0]; // only use files[0]
-      if (!itemFile) return;
-      readerData(itemFile, self.opts);
-      self.input.value = null; // fix can't select the same excel
-    });
-    bind(self.el, 'click', function(e) {
-      self.input.click()
-    })
+    if (self.opts.bindClick) {
+      self.input = create('input', {
+        type: 'file',
+        accept: '.xlsx, .xls',
+        style: 'display: none; z-index: -9999;'
+      });
+      self.el.parentElement.appendChild(self.input);
+      bind(self.input, 'change', function(e) {
+        var files = e.target.files;
+        var itemFile = files[0]; // only use files[0]
+        if (!itemFile) return;
+        readerData(itemFile, self.opts);
+        self.input.value = null; // fix can't select the same excel
+      });
+      bind(self.el, 'click', function(e) {
+        self.input.click()
+      })
+    }
   }
   ExcelImporter.prototype = {
     setHeaderMap: function(headerMap) {
@@ -66,6 +70,10 @@
     setHeaderRow: function(row) {
       this.opts.headerRow = row;
       this.opts.headerIndex = headerIndex(this.opts.headerRow);
+    },
+    loadExcel: function (file, opts) {
+        if (!file) return;
+        readerData(file, opts);
     }
   }
 
@@ -116,9 +124,16 @@
         if (!worksheet['!ref']) {
           continue;
         }
-        var header = getHeaderRow(worksheet, opts);
+        var range = XLSX.utils.decode_range(worksheet['!ref']);
+        if (opts.headerIndex && range.s.r < opts.headerIndex && range.e.r > opts.headerIndex) {
+            range.s.r = opts.headerIndex;
+        }
+        var header = getHeaderRow(worksheet, range, opts);
+        if (header && header.length && range.e.c !== header.length - 1) {
+            range.e.c = header.length - 1;
+        }
         var results = XLSX.utils.sheet_to_json(worksheet, {
-          range: opts.headerIndex,
+          range: range,
           dateNF: opts.dateNF
         });
         var item = generateData(sheetName, header, results, opts);
@@ -145,22 +160,22 @@
     return o
   }
   
-  function getHeaderRow(sheet, opts) {
+  function getHeaderRow(sheet, range, opts) {
     var headers = [];
-    var range = XLSX.utils.decode_range(sheet['!ref']);
     var C;
     var R = range.s.r; /* start in the first row */
-    if (opts.headerIndex) {
-      R = opts.headerIndex;
-    }
     for (C = range.s.c; C <= range.e.c; ++C) { /* walk every column in the range */
       var cell = sheet[XLSX.utils.encode_cell({
         c: C,
         r: R
       })]; /* find the cell in the first row */
       var hdr = 'UNKNOWN ' + C; // <-- replace with your desired default
-      if (cell && cell.t) hdr = XLSX.utils.format_cell(cell);
-      headers.push(hdr);
+      if (cell && cell.t) {
+        hdr = XLSX.utils.format_cell(cell);
+        headers.push(hdr);
+      } else if (opts.includeEmptyHeader) {
+          headers.push(hdr);
+      }
     }
     return headers
   }
