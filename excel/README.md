@@ -129,6 +129,8 @@ Excel表格头名和返回数据字段名的映射，接受对象和数组两种
 
 ## 参数说明
 
+tableId， url, data 三个设置一个即可，都设置时，优先级由高到低为 url, tableId, data
+
 #### tableId
 
 表格元素 id，需要导出页面表格时配置
