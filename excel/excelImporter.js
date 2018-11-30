@@ -85,7 +85,37 @@
     /**
      * 日期格式 默认 yyyy-MM-dd
      */
-    dateNF: 'yyyy-MM-dd'
+    dateNF: 'yyyy-MM-dd',
+    /**
+     * 必填字段名数组 校验参数
+     */
+    requiredFields: [],
+    /**
+     * 数值字段名数组 校验参数
+     */
+    numberFields: [],
+    /**
+     * 日期字段名数组 校验参数
+     */
+    dateFields: [],
+    /**
+     * 重复字段名数组 校验参数
+     */
+    duplicateFields: [],
+    /**
+     * 字段默认值映射 校验参数
+     */
+    defaultFields: {},
+    /**
+     * 如果defaultFields中字段映射的值是以 $ 开头，则从这里取值 校验参数
+     * 
+     * 例如
+     * defaultFields: {name: '$username'}
+     * defaultValues: {'$username': 'howie'}
+     * 则name默认值是 howie
+     * 
+     */
+    defaultValues: {}
   };
 
   /**
@@ -207,19 +237,39 @@
   }
 
   ExcelImporter.prototype = {
+    /**
+     * 设置 Excel表格头名和返回数据字段名的映射，接受对象和数组两种数据
+     * @param {*} headerMap Excel表格头名和返回数据字段名的映射
+     */
     setHeaderMap: function (headerMap) {
       this.opts.headerMap = checkAndConvertHeaderMap(headerMap);
     },
+    /**
+     * 设置表头所在行，从1起始
+     * @param {*} row 行号，从1起始
+     */
     setHeaderRow: function (row) {
       this.opts.headerRow = row;
       this.opts.headerIndex = headerIndex(this.opts.headerRow);
     },
+    /**
+     * 加载 Excel 文件
+     * @param {} file 文件对象
+     * @param {*} opts 参数，见参数说明
+     */
     loadExcel: function (file, opts) {
       if (!file) return;
       opts.headerMap = checkAndConvertHeaderMap(opts.headerMap);
       opts = Object.assign({}, this.opts, opts);
       readerData(file, opts);
     },
+    /**
+     * 检查数据, 可以做非空校验、数值类型校验、日期类型校验、重复值校验
+     * 
+     * @param {*} data 待校验的数组 对应 onLoaded 回调方法参数中的 results
+     * @param {*} opts 校验参数 见参数说明
+     * @returns {error:true, duplicate:true, errors:[]}
+     */
     checkData: function (data, opts) {
       opts = Object.assign({}, this.opts, opts);
       return checkUploadData(data, opts)

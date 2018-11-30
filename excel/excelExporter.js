@@ -164,6 +164,10 @@
     })
   };
 
+  /**
+   * 导出页面表格
+   * @param {*} id 表格id
+   */
   ExcelExporter.prototype.exportTableToExcel = function (id) {
     var theTable = getByID(id);
 
@@ -198,6 +202,14 @@
     }), filename + ".xlsx");
   };
 
+  /**
+   * 导出json数据
+   * @param {*} data json 数组
+   * @param {*} header 表头 可以不传 默认使用配置参数
+   * @param {*} fields 表头对应的字段名 可以不传 默认使用配置参数
+   * @param {*} filename 文件名 可以不传 默认使用配置参数
+   * @param {*} autoWidth 是否自动调整宽度 可以不传 默认使用配置参数
+   */
   ExcelExporter.prototype.exportJsonToExcel = function (data, header, fields, filename, autoWidth) {
     if (!data || !data.length) {
       console.log('没有数据');
