@@ -1,9 +1,9 @@
 /*!
- * 
+ *
  * Copyright (c) 2018 fenghao <howiefh@gmail.com>
- * 
+ *
  * Dependencies  : https://github.com/SheetJS/js-xlsx
- * 
+ *
  * Licensed under the MIT license.
  */
 (function (global, f) {
@@ -44,9 +44,9 @@
      *     ]
      *   }
      * ]
-     * 
-     * 
-     * 
+     *
+     *
+     *
      */
     onLoaded: null,
     /**
@@ -83,6 +83,10 @@
      */
     includeEmptyHeader: false,
     /**
+     * 是否按原生类型解析，如果为false按string解析，默认true
+     */
+    raw: true,
+    /**
      * 日期格式 默认 yyyy-MM-dd
      */
     dateNF: 'yyyy-MM-dd',
@@ -108,12 +112,12 @@
     defaultFields: {},
     /**
      * 如果defaultFields中字段映射的值是以 $ 开头，则从这里取值 校验参数
-     * 
+     *
      * 例如
      * defaultFields: {name: '$username'}
      * defaultValues: {'$username': 'howie'}
      * 则name默认值是 howie
-     * 
+     *
      */
     defaultValues: {}
   };
@@ -265,7 +269,7 @@
     },
     /**
      * 检查数据, 可以做非空校验、数值类型校验、日期类型校验、重复值校验
-     * 
+     *
      * @param {*} data 待校验的数组 对应 onLoaded 回调方法参数中的 results
      * @param {*} opts 校验参数 见参数说明
      * @returns {error:true, duplicate:true, errors:[]}
@@ -346,6 +350,7 @@
         }
         var results = XLSX.utils.sheet_to_json(worksheet, {
           range: range,
+          raw: opts.raw,
           dateNF: opts.dateNF
         });
         var item = generateData(sheetName, header, results, opts);

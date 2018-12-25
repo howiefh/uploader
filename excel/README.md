@@ -97,6 +97,10 @@ Excel表格头名和返回数据字段名的映射，接受对象和数组两种
 
 是否包含为空的表头, 默认false
 
+#### raw
+
+是否按原生类型解析，如果为false按string解析，默认true
+
 #### dateNF
 
 日期格式 默认 yyyy-MM-dd
