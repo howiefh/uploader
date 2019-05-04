@@ -48,6 +48,18 @@
      */
     autoWidth: true,
     /**
+     * 表头样式
+     */
+    headerStyle: null,
+    /**
+     * 表头行数
+     */
+    headerRows: 1,
+    /**
+     * 多级表头
+     */
+    columns: null,
+    /**
      * 表头数组，不传的话从headerMap中解析，如果headerMap也没设置则使用fields配置
      */
     header: null,
@@ -84,6 +96,7 @@
     formatterMap: null,
   };
 
+  let tableLeafColumns = []
   /**
    * Excel 导出器
    * @param {*} element 元素 id
@@ -92,6 +105,19 @@
   function ExcelExporter(element, options) {
     var self = this;
     self.opts = Object.assign({}, defaults, options);
+    const hasColumnsArray = isArray(self.opts.columns);
+    if (self.opts.headerRows === 1 && hasColumnsArray) {
+      self.opts.headerRows = treeDepth(self.opts.columns)
+    }
+
+    if (self.opts.headerRows > 1 && hasColumnsArray) {
+      tableLeafColumns = []
+      parseColumns(self.opts.columns, 0, 0, self.opts.headerRows)
+      self.opts.headerMap = tableLeafColumns
+    } else if (!self.opts.headerMap && hasColumnsArray) {
+      self.opts.headerMap = self.opts.columns
+    }
+
     if (isArray(self.opts.headerMap)) {
       var newMap = {};
       for (var i = 0; i < self.opts.headerMap.length; i++) {
@@ -111,6 +137,10 @@
     }
     if (!self.opts.header && self.opts.fields) {
       self.opts.header = self.opts.fields
+    }
+
+    if (self.opts.headerStyle) {
+      self.opts.headerStyle = parseStyle(self.opts.headerStyle)
     }
 
     self.el = getByID(element);
@@ -139,7 +169,11 @@
           }).then(res => res.json())
           .then((data) => {
             if (data.code === 200) {
-              self.exportJsonToExcel(data.rows, self.opts.header)
+              if (self.opts.headerRows > 1) {
+                self.exportJsonToExcelWithGroupHeader(data.rows)
+              } else {
+                self.exportJsonToExcel(data.rows, self.opts.header)
+              }
             } else {
               alert('System Error: ' + data.msg);
             }
@@ -156,10 +190,14 @@
       } else if (self.opts.data) {
         if (typeof self.opts.data === 'function') {
           data = self.opts.data()
-        } else if (typeof self.opts.ajaxData === 'object') {
+        } else if (typeof self.opts.data === 'object') {
           data = self.opts.data
         }
-        self.exportJsonToExcel(data, self.opts.header)
+        if (self.opts.headerRows > 1) {
+          self.exportJsonToExcelWithGroupHeader(data)
+        } else {
+          self.exportJsonToExcel(data, self.opts.header)
+        }
       }
     })
   };
@@ -215,11 +253,8 @@
       console.log('没有数据');
       return false;
     }
-    header = header || this.opts.header;
-    if (!header && data.length > 0) {
-      header = Object.keys(data[0]);
-    }
-    fields = fields || this.opts.fields || header || [];
+    fields = fields || this.opts.fields || Object.keys(data[0])
+    header = header || this.opts.header || fields
     filename = filename || this.opts.filename || Date.now();
     if (typeof autoWidth !== 'boolean') {
       autoWidth = this.opts.autoWidth;
@@ -227,37 +262,127 @@
 
     data = filterData(fields, data, this.opts);
 
+    const wsName = Date.now() + '-' + data.length
+    data=[...data]
     data.unshift(header);
-    var wsName = "SheetJS";
-    var wb = new Workbook(),
-      ws = sheetFromArrayOfArrays(data);
+    const ws = sheetFromArrayOfArrays(data, { headerRows: this.opts.headerRows, headerStyle: this.opts.headerStyle })
 
-    if (autoWidth) {
+    internalExportJsonToExcel({ ws, wsName, data, filename, autoWidth })
+  }
+
+  /**
+   * 导出多级表头的json数据
+   * @param {*} data json 数组
+   * @param {*} header 表头 可以不传 默认使用配置参数
+   * @param {*} fields 表头对应的字段名 可以不传 默认使用配置参数
+   * @param {*} filename 文件名 可以不传 默认使用配置参数
+   * @param {*} autoWidth 是否自动调整宽度 可以不传 默认使用配置参数
+   */
+  ExcelExporter.prototype.exportJsonToExcelWithGroupHeader = function (data, header, fields, filename, autoWidth) {
+    if (!data || !data.length) {
+      console.log('没有数据');
+      return false;
+    }
+    fields = fields || this.opts.fields || Object.keys(data[0])
+    let headerRows
+    if (isArray(header)) {
+      const oldTableLeafColumns = tableLeafColumns
+      headerRows = treeDepth(header)
+      parseColumns(header, 0, 0, headerRows)
+      tableLeafColumns = oldTableLeafColumns
+    } else {
+      header = this.opts.columns
+      headerRows = this.opts.headerRows
+    }
+    filename = filename || this.opts.filename || Date.now();
+    if (typeof autoWidth !== 'boolean') {
+      autoWidth = this.opts.autoWidth;
+    }
+
+    const result = generateHeaderRows(header)
+    const headers = result.rows
+    const merges = result.merges
+
+    data = filterData(fields, data, this.opts);
+    const wsName = Date.now() + '-' + data.length
+    data = [...data]
+    data.unshift(...headers)
+    const ws = sheetFromArrayOfArrays(data, { headerRows: headerRows, headerStyle: this.opts.headerStyle })
+    ws['!merges'] = merges
+
+    internalExportJsonToExcel({ ws, wsName, data, filename, autoWidth })
+  }
+
+  function treeDepth(columns) {
+    const depth = [0]
+    for (let i = 0; i < columns.length; i++) {
+      depth.push(treeNodeDepth(columns[i]))
+    }
+    return Math.max(...depth)
+  }
+
+  function treeNodeDepth(column) {
+    // 叶子节点
+    if ((!column.children || !column.children.length)) {
+      return 1
+    }
+
+    return treeDepth(column.children) + 1
+  }
+
+  /**
+   * @param startRow 从 0 起始
+   * @param startCol 从 0 起始
+   */
+  function parseColumns(columns, startRow, startCol, headerRows) {
+    let colSpan = 0
+    let prevColSpan = 0
+    for (let i = 0; i < columns.length; i++) {
+      const column = columns[i]
+      // 没有设置 label 时 使用 name 属性
+      column.label = column.label || column.name
+
+      column.startRow = startRow
+      startCol = startCol + prevColSpan
+      column.startCol = startCol
+      // 叶子节点
+      if ((!column.children || !column.children.length)) {
+        column.colSpan = 1
+        column.rowSpan = headerRows - column.startRow
+        column.isLeaf = true
+        tableLeafColumns.push(column)
+      } else {
+        column.isLeaf = false
+        column.colSpan = parseColumns(column.children, startRow + 1, startCol, headerRows)
+        column.rowSpan = 1
+      }
+      colSpan += column.colSpan
+      prevColSpan = column.colSpan
+    }
+    return colSpan
+  }
+
+  function internalExportJsonToExcel({ws, wsName, data, filename='excel-list', autoWidth=true}={}) {
+    var wb = new Workbook()
+
+    if(autoWidth){
       /*设置worksheet每列的最大宽度*/
-      var colWidth = data.map(function (row) {
-        return row.map(function (val) {
-          /*先判断是否为null/undefined*/
-          if (val == null) {
-            return {
-              'wch': 10
-            };
-          }
-          /*再判断是否为中文*/
-          else if (val.toString().charCodeAt(0) > 255) {
-            return {
-              'wch': val.toString().length * 2
-            };
-          } else {
-            return {
-              'wch': val.toString().length
-            };
-          }
-        })
-      });
+      const colWidth = data.map(row => row.map(val => {
+        /*先判断是否为null/undefined*/
+        if (val == null) {
+          return {'wch': 10};
+        }
+        /*再判断是否为中文*/
+        else if (val.toString().charCodeAt(0) > 255) {
+          return {'wch': val.toString().length * 2};
+        } else {
+          return {'wch': val.toString().length};
+        }
+      }))
       /*以第一行为初始值*/
-      var result = colWidth[0];
-      for (var i = 1; i < colWidth.length; i++) {
-        for (var j = 0; j < colWidth[i].length; j++) {
+      let result = colWidth[0];
+      for (let i = 1; i < colWidth.length; i++) {
+        for (let j = 0; j < colWidth[i].length; j++) {
           if (result[j]['wch'] < colWidth[i][j]['wch']) {
             result[j]['wch'] = colWidth[i][j]['wch'];
           }
@@ -270,14 +395,80 @@
     wb.SheetNames.push(wsName);
     wb.Sheets[wsName] = ws;
 
-    var wbout = XLSX.write(wb, {
-      bookType: 'xlsx',
-      bookSST: false,
-      type: 'binary'
-    });
-    saveAs(new Blob([s2ab(wbout)], {
-      type: "application/octet-stream"
-    }), filename + ".xlsx");
+    var wbout = XLSX.write(wb, {bookType: 'xlsx', bookSST: false, type: 'binary'});
+    saveAs(new Blob([s2ab(wbout)], {type: "application/octet-stream"}), filename + ".xlsx");
+  }
+
+  function parseStyle(style) {
+    if (!style) {
+      return style
+    }
+    const newStyle = {}
+    Object.keys(style).forEach(key => {
+      const value = style[key]
+      switch (key) {
+        case 'fgColor': {
+          if (!newStyle.fill) {
+            newStyle.fill = {}
+          }
+          newStyle.fill.fgColor = { rgb: value }
+          break
+        }
+        case 'bgColor': {
+          if (!newStyle.fill) {
+            newStyle.fill = {}
+          }
+          newStyle.fill.bgColor = { rgb: value }
+          break
+        }
+        case 'fontColor': {
+          if (!newStyle.font) {
+            newStyle.font = {}
+          }
+          newStyle.font.color = { rgb: value }
+          break
+        }
+        case 'fontSize': {
+          if (!newStyle.font) {
+            newStyle.font = {}
+          }
+          newStyle.font.sz = value
+          break
+        }
+        case 'fontBold': {
+          if (!newStyle.font) {
+            newStyle.font = {}
+          }
+          newStyle.font.bold = value
+          break
+        }
+        case 'align': {
+          if (!newStyle.alignment) {
+            newStyle.alignment = {}
+          }
+          newStyle.alignment.vertical = value
+          newStyle.alignment.horizontal = value
+          break
+        }
+        case 'horizontalAlign': {
+          if (!newStyle.alignment) {
+            newStyle.alignment = {}
+          }
+          newStyle.alignment.horizontal = value
+          break
+        }
+        case 'verticalAlign': {
+          if (!newStyle.alignment) {
+            newStyle.alignment = {}
+          }
+          newStyle.alignment.vertical = value
+          break
+        }
+        default:
+          newStyle[key] = value
+      }
+    })
+    return newStyle
   }
 
   function encodeQueryString(url, params) {
@@ -311,6 +502,48 @@
         callback(event);
       });
     }
+  }
+
+  function generateHeaderRows(headerTree) {
+    const queue = [...headerTree]
+    const merges = []
+    const headerRows = []
+    const result = {}
+    while (queue.length > 0) {
+      const headerItem = queue.shift()
+      if (headerItem.children && headerItem.children.length) {
+        queue.push(...headerItem.children)
+      }
+  
+      const startRow = headerItem.startRow
+      const startCol = headerItem.startCol
+      const rowSpan = headerItem.rowSpan
+      const colSpan = headerItem.colSpan
+  
+      for (let i = 0; i < rowSpan; i++) {
+        const row = startRow + i
+        let headerRow = headerRows[row]
+        if (!headerRow) {
+          headerRow = []
+          headerRows[row] = headerRow
+        }
+  
+        for (let j = 0; j < colSpan; j++) {
+          const col = startCol + j
+          if (row === startRow && col === startCol) {
+            headerRow[col] = headerItem.label
+          } else {
+            headerRow[col] = null
+          }
+        }
+      }
+      if (rowSpan > 1 || colSpan > 1) {
+        merges.push({s: {r: startRow, c: startCol}, e: {r: startRow + rowSpan - 1, c: startCol + colSpan - 1}})
+      }
+    }
+    result['merges'] = merges
+    result['rows'] = headerRows
+    return result
   }
 
   function generateArray(table) {
@@ -371,6 +604,7 @@
 
   function sheetFromArrayOfArrays(data, opts) {
     var ws = {};
+    opts.headerRows = typeof opts.headerRows !== 'number' ? 1 : opts.headerRows
     var range = {
       s: {
         c: 10000000,
@@ -403,6 +637,10 @@
           cell.z = XLSX.SSF._table[14];
           cell.v = datenum(cell.v);
         } else cell.t = 's';
+
+        if (opts.headerStyle && R < opts.headerRows) {
+          cell.s = opts.headerStyle
+        }
 
         ws[cell_ref] = cell;
       }

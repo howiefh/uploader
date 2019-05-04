@@ -19,6 +19,7 @@
   <button id="exportTable">Export Table</button>
   <h4>Export Remote Data</h4>
   <button id="exportRemote">Export Remote</button>
+  <button id="exportRemoteGroupHeader">Export Remote Group Header</button>
   <div id="container"></div>
 
   <script type="text/javascript" src="//unpkg.com/xlsx/dist/shim.min.js"></script>
@@ -110,6 +111,33 @@
         t: Date.now()
       }
     });
+
+    var exportRemoteGroupHeaderDownloader = new ExcelExporter('exportRemoteGroupHeader', {
+      url: './data.json',
+      columns: [
+        {
+          name: 'Name'
+        },
+        {
+          name: 'Detail',
+          children: [
+            {
+              name: 'Sex'
+            },
+            {
+              name: 'Score'
+            }
+          ]
+        },
+        {
+          name: 'Date'
+        }
+      ],
+      ajaxData: {
+        t: Date.now()
+      }
+    });
+    
   </script>
 </body>
 </html>
