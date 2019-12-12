@@ -30,6 +30,10 @@
      */
     data: null,
     /**
+     * 远程请求，响应中数据属性名
+     */
+    dataKey: 'data',
+    /**
      * 导出远程数据时，ajax 请求所携带的数据，可以是方法或对象，方法适用于每次导出时参数可能会改变的情况
      * 例如
      * ajaxData: function() {
@@ -169,10 +173,16 @@
           }).then(res => res.json())
           .then((data) => {
             if (data.code === 200) {
+              var rows;
+              if (typeof self.opts.dataKey === 'function') {
+                rows = self.opts.dataKey(data)
+              } else if (typeof self.opts.dataKey === 'string') {
+                rows = data[self.opts.dataKey]
+              }
               if (self.opts.headerRows > 1) {
-                self.exportJsonToExcelWithGroupHeader(data.rows)
+                self.exportJsonToExcelWithGroupHeader(rows)
               } else {
-                self.exportJsonToExcel(data.rows, self.opts.header)
+                self.exportJsonToExcel(rows, self.opts.header)
               }
             } else {
               alert('System Error: ' + data.msg);
