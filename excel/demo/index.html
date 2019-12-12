@@ -17,6 +17,24 @@
   <button id="multiImport">Import</button>
   <button id="export">Export Data</button>
   <button id="exportTable">Export Table</button>
+  <h4>Export JSON Data</h4>
+  <textarea id="json" rows="10" style="width:500px">[ {
+    "日期" : "2019-07-24",
+    "数量" : "4961"
+  }, {
+    "日期" : "2019-07-23",
+    "数量" : "5299"
+  }, {
+    "日期" : "2019-07-22",
+    "数量" : "4767"
+  }, {
+    "日期" : "2019-07-21",
+    "数量" : "5082"
+  }, {
+    "日期" : "2019-07-20",
+    "数量" : "5042"
+  }]</textarea>
+  <button id="exportJson" onclick="exportJsonData()">Export JSON Data</button>
   <h4>Export Remote Data</h4>
   <button id="exportRemote">Export Remote</button>
   <button id="exportRemoteGroupHeader">Export Remote Group Header</button>
@@ -137,6 +155,15 @@
         t: Date.now()
       }
     });
+
+    var jsonExporter = new ExcelExporter('exportJson', {bindClick: false});
+    function exportJsonData() {
+      var jsonEle = document.querySelector('#json');
+      if (jsonEle.value) {
+        var json = JSON.parse(jsonEle.value);
+        jsonExporter.exportJsonToExcel(json);
+      }
+    }
     
   </script>
 </body>
